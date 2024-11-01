@@ -18,39 +18,38 @@
 	2;"Agent01";"5701";"4704";"";"AVAIL";0;"";25;""
 	*/
 	
-	$string =file_get_contents("AgentActivity.txt");
+	$string = file_get_contents("AgentActivity.txt");
+$baris = preg_split('/\r\n|\n|\r/', trim($string));
 
-    $baris = preg_split('/\r\n|\n|\r/', trim($string));
+$data = [];
+foreach ($baris as $key => $value) {
+    // Skip the first two lines
+    if ($key < 2) continue;
 
-    $data = [];
-    foreach ($baris as $key => $value) {
-        if($key <= 13) {
-            $items = explode(";", filter($value));
-            $item_value = array_splice($items, 1);
-            $data['Head'][filter($items[0])] = (count($item_value) == 1) ? $item_value[0] : $item_value;
+    // Process Head data (rows 3-15 in the file)
+    if ($key <= 14) { 
+        $items = explode(";", filter($value));
+        $item_value = array_splice($items, 1);
+        $data['Head'][] = $item_value; // Store all rows in Head as individual arrays
+    } else {
+        // Process DataDetail starting from row 16
+        $items = explode(";", filter($value));
+        
+        if ($key == 15) { 
+            $groups = $items;
         } else {
-            $items = explode(";", filter($value));
-            
-            if($key == 14) {
-                $groups = $items;
-                $groupKey = $groups[0];
+            $detail = [];
+            for ($i = 1; $i < count($items); $i++) { 
+                $detail[filter($groups[$i])] = filter($items[$i]);
             }
-
-            if($key > 14) { 
-                for ($i=0; $i < count($items)-1; $i++) { 
-                    $detail[filter($groups[(1+$i)])] = filter($items[(1+$i)]);
-                }
-                
-                $data['DataDetail'][] = $detail;
-            }
+            $data['DataDetail'][] = $detail;
         }
     }
+}
 
-    function filter($teks)
-    {
-        return trim(preg_replace('/\s+/', ' ', preg_replace("/[^A-Za-z0-9\ \;]/", " ", $teks)));
-    }
-    
-    // print_r($data);
+function filter($teks)
+{
+    return trim(preg_replace('/\s+/', ' ', preg_replace("/[^A-Za-z0-9\ \;]/", " ", $teks)));
+}
 
-    echo json_encode($data);
+echo json_encode($data);
